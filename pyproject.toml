@@ -45,7 +45,7 @@ dependencies = [
 ml = [
   "accelerate>=1.2,<2",
   "bitsandbytes>=0.45,<1; platform_system == 'Linux'",
-  "datasets>=3.2,<5",
+  "datasets>=3.2,<6",
   "peft>=0.16,<1",
   "safetensors>=0.5,<1",
   "torch>=2.6,<3",
