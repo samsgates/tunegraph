@@ -1,0 +1,2 @@
+{"text":"<|user|>My package did not arrive. Can I get a refund?<|assistant|>{\"eligible\":true,\"reason\":\"Delivery failure requires order verification and refund review.\"}"}
+{"text":"<|user|>I changed my mind after using the product for a month.<|assistant|>{\"eligible\":false,\"reason\":\"The request is outside the approved return window.\"}"}

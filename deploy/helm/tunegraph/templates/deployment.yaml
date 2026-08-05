@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tunegraph.fullname" . }}
+  labels:
+    {{- include "tunegraph.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "tunegraph.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "tunegraph.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        checksum/config: {{ toYaml .Values.config | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "tunegraph.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: tunegraph
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: TUNEGRAPH_ENVIRONMENT
+              value: {{ .Values.config.environment | quote }}
+            - name: TUNEGRAPH_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.databaseUrlSecretName }}
+                  key: {{ .Values.config.databaseUrlSecretKey }}
+            - name: TUNEGRAPH_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.secretKeySecretName }}
+                  key: {{ .Values.config.secretKeySecretKey }}
+            - name: TUNEGRAPH_ARTIFACT_ROOT
+              value: {{ .Values.config.artifactRoot | quote }}
+            - name: TUNEGRAPH_INFERENCE_BACKEND_URL
+              value: {{ .Values.config.inferenceBackendUrl | quote }}
+            - name: TUNEGRAPH_OPA_URL
+              value: {{ .Values.config.opaUrl | quote }}
+            - name: TUNEGRAPH_TRUSTED_HOSTS
+              value: {{ .Values.config.trustedHosts | quote }}
+            - name: TUNEGRAPH_CORS_ORIGINS
+              value: {{ .Values.config.corsOrigins | quote }}
+            - name: TUNEGRAPH_SIGNING_PUBLIC_KEY_PATH
+              value: /var/run/tunegraph-signing/public.pem
+            - name: TUNEGRAPH_SIGNING_PRIVATE_KEY_PATH
+              value: /var/run/tunegraph-signing/private.pem
+          startupProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: artifacts
+              mountPath: {{ .Values.config.artifactRoot }}
+            - name: signing-key
+              mountPath: /var/run/tunegraph-signing
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: artifacts
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "tunegraph.fullname" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: signing-key
+          secret:
+            secretName: {{ .Values.config.signingKeySecretName }}
+            items:
+              - key: {{ .Values.config.signingPublicKeySecretKey }}
+                path: public.pem
+              - key: {{ .Values.config.signingPrivateKeySecretKey }}
+                path: private.pem
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

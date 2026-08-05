@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: TuneGraph
+message: If you use TuneGraph in research, cite this software repository.
+type: software
+authors:
+  - family-names: TuneGraph Contributors
+version: 0.1.0
+date-released: 2026-08-05
+license: Apache-2.0
+repository-code: https://github.com/tunegraph-ai/tunegraph

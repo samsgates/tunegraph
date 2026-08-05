@@ -1,0 +1,96 @@
+name: tunegraph
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: tunegraph
+      POSTGRES_USER: tunegraph
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tunegraph -d tunegraph"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [backend]
+
+  opa:
+    image: openpolicyagent/opa:1.7.1-static
+    command: ["run", "--server", "--addr=0.0.0.0:8181", "/policies"]
+    volumes:
+      - ./deploy/opa:/policies:ro
+    networks: [backend]
+
+  api:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TUNEGRAPH_ENVIRONMENT: development
+      TUNEGRAPH_DATABASE_URL: postgresql+psycopg://tunegraph:${POSTGRES_PASSWORD:-local-development-password}@postgres:5432/tunegraph
+      TUNEGRAPH_SECRET_KEY: ${TUNEGRAPH_SECRET_KEY:-development-secret-change-before-production-123456789}
+      TUNEGRAPH_ARTIFACT_ROOT: /app/var/artifacts
+      TUNEGRAPH_INFERENCE_BACKEND_URL: ${TUNEGRAPH_INFERENCE_BACKEND_URL:-http://host.docker.internal:8001}
+      TUNEGRAPH_OPA_URL: http://opa:8181
+      TUNEGRAPH_TRUSTED_HOSTS: '["localhost","127.0.0.1","api","testserver"]'
+      TUNEGRAPH_CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - artifact-data:/app/var/artifacts
+    networks: [backend]
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: ["ALL"]
+
+  console:
+    build:
+      context: ./console
+    depends_on:
+      - api
+    environment:
+      TUNEGRAPH_API_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    networks: [backend]
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: ["ALL"]
+
+  worker:
+    profiles: ["ml"]
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.ml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TUNEGRAPH_ENVIRONMENT: development
+      TUNEGRAPH_DATABASE_URL: postgresql+psycopg://tunegraph:${POSTGRES_PASSWORD:-local-development-password}@postgres:5432/tunegraph
+      TUNEGRAPH_SECRET_KEY: ${TUNEGRAPH_SECRET_KEY:-development-secret-change-before-production-123456789}
+      TUNEGRAPH_ARTIFACT_ROOT: /app/var/artifacts
+    volumes:
+      - artifact-data:/app/var/artifacts
+      - model-cache:/home/tunegraph/.cache/huggingface
+    networks: [backend]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  backend:
+    internal: false
+
+volumes:
+  postgres-data:
+  artifact-data:
+  model-cache:

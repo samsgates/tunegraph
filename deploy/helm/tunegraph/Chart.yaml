@@ -1,0 +1,7 @@
+apiVersion: v2
+name: tunegraph
+description: Enterprise control plane for traceable PEFT behavior
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords: [llm, lora, peft, mlops]

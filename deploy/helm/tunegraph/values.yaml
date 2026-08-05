@@ -1,0 +1,92 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/tunegraph-ai/tunegraph
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  readOnlyRootFilesystem: true
+  runAsUser: 10001
+  runAsGroup: 10001
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: tunegraph.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  allowedEgressCIDRs: []
+
+config:
+  environment: production
+  databaseUrlSecretName: tunegraph-database
+  databaseUrlSecretKey: database-url
+  secretKeySecretName: tunegraph-secrets
+  secretKeySecretKey: secret-key
+  artifactRoot: /var/lib/tunegraph/artifacts
+  inferenceBackendUrl: http://vllm.default.svc.cluster.local:8000
+  opaUrl: http://opa.default.svc.cluster.local:8181
+  trustedHosts: '["tunegraph.local"]'
+  corsOrigins: '[]'
+  signingKeySecretName: tunegraph-signing
+  signingPublicKeySecretKey: public.pem
+  signingPrivateKeySecretKey: private.pem
+
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClass: ""
+  accessModes: ["ReadWriteMany"]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

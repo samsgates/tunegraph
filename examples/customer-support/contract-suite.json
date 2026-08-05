@@ -1,0 +1,30 @@
+{
+  "name": "refund-production",
+  "version": 1,
+  "gates": [
+    {
+      "id": "refund-f1",
+      "evaluator": "metric_threshold",
+      "metric": "macro_f1",
+      "operator": ">=",
+      "threshold": 0.94,
+      "blocking": true,
+      "config": {}
+    },
+    {
+      "id": "valid-output",
+      "evaluator": "json_schema",
+      "blocking": true,
+      "config": {
+        "schema": {
+          "type": "object",
+          "required": ["eligible", "reason"],
+          "properties": {
+            "eligible": {"type": "boolean"},
+            "reason": {"type": "string"}
+          }
+        }
+      }
+    }
+  ]
+}
