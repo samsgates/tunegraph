@@ -51,6 +51,10 @@ Rollback, revocation, or remediation
 - Hardened Docker images and Helm chart
 - GitHub Actions, security scans, contribution guidance, and runbooks
 
+## How it works
+
+![TuneGraph lifecycle](media_resources/howitsworks.png)
+
 ## Architecture
 
 ```text
@@ -79,6 +83,8 @@ Rollback, revocation, or remediation
 ```
 
 The control plane is implemented as a modular FastAPI application. Compute-heavy training and latency-sensitive inference are independent processes. This minimizes initial operational complexity while preserving clean service boundaries.
+
+![TuneGraph architecture](media_resources/architech_diagram.png)
 
 ## Repository layout
 
