@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM ghcr.io/astral-sh/uv:0.8.3 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.15 AS uv
 FROM python:3.13-slim AS builder
 COPY --from=uv /uv /usr/local/bin/uv
 WORKDIR /app
