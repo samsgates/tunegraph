@@ -50,7 +50,7 @@ ml = [
   "safetensors>=0.5,<1",
   "torch>=2.6,<3",
   "transformers>=4.48,<6",
-  "trl>=0.15,<1",
+  "trl>=0.15,<2",
 ]
 s3 = ["boto3>=1.35,<2"]
 otel = [
